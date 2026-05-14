@@ -4,15 +4,27 @@ Python SDK for the Coding Search API. One endpoint, typed responses, typed error
 
 ## Install
 
-Install globally so the `coding-search` CLI is on your `$PATH`:
+One-liner (macOS / Linux). Installs everything — including a Python toolchain if you don't have one — and wires the `coding-search` CLI into your `$PATH`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andre-fu/coding-search-python/main/install.sh | bash
+```
+
+The script:
+
+1. Installs [`uv`](https://docs.astral.sh/uv/) if it isn't already on `$PATH`.
+2. Runs `uv tool install` to drop `coding-search` into an isolated venv under `~/.local`.
+3. Calls `uv tool update-shell` so `~/.local/bin` is on `$PATH` in new shells.
+
+No `sudo`, no system-Python pollution, idempotent — re-running upgrades to the latest `main`. After install, open a new shell (or `source` your rc file) and run `coding-search --help`.
+
+If you'd rather skip the script, the same thing in two commands:
 
 ```bash
 uv tool install git+https://github.com/andre-fu/coding-search-python.git
 # or, without uv:
 pipx install git+https://github.com/andre-fu/coding-search-python.git
 ```
-
-Both `uv tool install` and `pipx` put the CLI in an isolated venv, so it won't conflict with whatever Python environment you're working in.
 
 From a local clone (for development):
 
@@ -21,7 +33,7 @@ pip install -e .
 # or:  uv pip install -e .
 ```
 
-Either path installs both the Python library and the `coding-search` CLI.
+Any of these install both the Python library and the `coding-search` CLI.
 
 ## CLI
 
