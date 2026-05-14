@@ -4,14 +4,24 @@ Python SDK for the Coding Search API. One endpoint, typed responses, typed error
 
 ## Install
 
-From this repo:
+Install globally so the `coding-search` CLI is on your `$PATH`:
+
+```bash
+uv tool install git+https://github.com/andre-fu/coding-search-python.git
+# or, without uv:
+pipx install git+https://github.com/andre-fu/coding-search-python.git
+```
+
+Both `uv tool install` and `pipx` put the CLI in an isolated venv, so it won't conflict with whatever Python environment you're working in.
+
+From a local clone (for development):
 
 ```bash
 pip install -e .
 # or:  uv pip install -e .
 ```
 
-Installs both the Python library and the `coding-search` CLI.
+Either path installs both the Python library and the `coding-search` CLI.
 
 ## CLI
 
