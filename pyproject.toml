@@ -1,6 +1,6 @@
 [project]
 name = "coding-search"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python SDK for the Coding Search API."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,6 +19,9 @@ classifiers = [
 dependencies = [
     "httpx>=0.27",
 ]
+
+[project.scripts]
+coding-search = "coding_search._cli:main"
 
 [project.optional-dependencies]
 dev = [

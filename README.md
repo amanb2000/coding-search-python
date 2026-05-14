@@ -7,9 +7,34 @@ Python SDK for the Coding Search API. One endpoint, typed responses, typed error
 From this repo:
 
 ```bash
-pip install -e ./sdk
-# or:  uv pip install -e ./sdk
+pip install -e .
+# or:  uv pip install -e .
 ```
+
+Installs both the Python library and the `coding-search` CLI.
+
+## CLI
+
+```bash
+coding-search "how to handle connection pooling in asyncpg"
+
+# Just URLs, one per line — pipe-friendly
+coding-search --urls "python pathlib glob"
+
+# Full response as JSON
+coding-search --json "react useEffect cleanup"
+
+# Pipe a query in
+echo "asyncio gather return exceptions" | coding-search --urls
+
+# Send your API key (or set CODING_SEARCH_API_KEY)
+coding-search --api-key acme-prod "..."
+
+# Show all options
+coding-search --help
+```
+
+Exits non-zero on error; error message goes to stderr. The CLI uses the same env vars as the library (`CODING_SEARCH_API_KEY`, `CODING_SEARCH_BASE_URL`).
 
 ## Quickstart
 
