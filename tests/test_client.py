@@ -168,3 +168,59 @@ def test_explicit_base_url_wins_over_env(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("CODING_SEARCH_BASE_URL", "https://env.example.com")
     c = Client(base_url="https://arg.example.com")
     assert c._base_url == "https://arg.example.com"
+
+
+@respx.mock
+def test_api_key_sent_as_bearer() -> None:
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    with Client(base_url=_BASE, api_key="key-abc-123") as c:
+        c.search("q")
+    sent = route.calls.last.request
+    assert sent.headers.get("authorization") == "Bearer key-abc-123"
+
+
+@respx.mock
+def test_no_api_key_omits_header() -> None:
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    with Client(base_url=_BASE) as c:
+        c.search("q")
+    sent = route.calls.last.request
+    assert "authorization" not in sent.headers
+
+
+@respx.mock
+def test_api_key_from_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODING_SEARCH_API_KEY", "env-key-xyz")
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    with Client(base_url=_BASE) as c:
+        c.search("q")
+    sent = route.calls.last.request
+    assert sent.headers.get("authorization") == "Bearer env-key-xyz"
+
+
+@respx.mock
+def test_arg_api_key_wins_over_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CODING_SEARCH_API_KEY", "env-key")
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    with Client(base_url=_BASE, api_key="arg-key") as c:
+        c.search("q")
+    sent = route.calls.last.request
+    assert sent.headers.get("authorization") == "Bearer arg-key"
+
+
+@respx.mock
+def test_empty_api_key_omits_header() -> None:
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    with Client(base_url=_BASE, api_key="   ") as c:
+        c.search("q")
+    sent = route.calls.last.request
+    assert "authorization" not in sent.headers
+
+
+@respx.mock
+async def test_async_api_key_sent_as_bearer() -> None:
+    route = respx.post(_URL).mock(return_value=httpx.Response(200, json=_SAMPLE_OK))
+    async with AsyncClient(base_url=_BASE, api_key="async-key") as c:
+        await c.search("q")
+    sent = route.calls.last.request
+    assert sent.headers.get("authorization") == "Bearer async-key"

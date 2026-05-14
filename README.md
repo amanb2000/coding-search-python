@@ -16,13 +16,15 @@ pip install -e ./sdk
 ```python
 from coding_search import Client
 
-with Client() as c:
+with Client(api_key="your-key") as c:
     r = c.search("how to handle connection pooling in asyncpg")
     for hit in r.results:
         print(hit.position, hit.domain, hit.url)
 ```
 
 The default base URL points at `http://54.70.137.0:8080`. Override per-client or via the `CODING_SEARCH_BASE_URL` environment variable.
+
+The `api_key` is **optional and not validated today** — it is forwarded as `Authorization: Bearer <key>` so the server can attribute traffic per consumer in the request logs. Set it via the `api_key=` argument or the `CODING_SEARCH_API_KEY` environment variable; omit it for ad-hoc testing.
 
 ## Async
 
@@ -84,11 +86,12 @@ with Client() as c:
 
 ## Configuration
 
-| Argument               | Default                       | Notes                                                  |
-| ---------------------- | ----------------------------- | ------------------------------------------------------ |
-| `base_url`             | `http://54.70.137.0:8080`     | Or `CODING_SEARCH_BASE_URL` env var                    |
-| `timeout`              | `15.0`                        | Seconds; do not drop below 15s per integration guide   |
-| `client`               | a fresh `httpx.(Async)Client` | Pass your own for connection-pool / proxy customization |
+| Argument               | Default                       | Notes                                                                       |
+| ---------------------- | ----------------------------- | --------------------------------------------------------------------------- |
+| `api_key`              | `None`                        | Or `CODING_SEARCH_API_KEY`; sent as `Authorization: Bearer ...` for tracking (not validated today) |
+| `base_url`             | `http://54.70.137.0:8080`     | Or `CODING_SEARCH_BASE_URL` env var                                         |
+| `timeout`              | `15.0`                        | Seconds; do not drop below 15s per integration guide                        |
+| `client`               | a fresh `httpx.(Async)Client` | Pass your own for connection-pool / proxy customization                     |
 
 ## Response shape
 

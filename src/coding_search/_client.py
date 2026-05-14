@@ -21,6 +21,7 @@ plus per-request overhead, so anything under 15s on the client side will
 truncate retryable timeouts."""
 
 _ENV_BASE_URL = "CODING_SEARCH_BASE_URL"
+_ENV_API_KEY = "CODING_SEARCH_API_KEY"
 _PATH = "/api/search"
 
 
@@ -92,6 +93,19 @@ def _resolve_base_url(base_url: str | None) -> str:
     return (base_url or os.getenv(_ENV_BASE_URL) or DEFAULT_BASE_URL).rstrip("/")
 
 
+def _resolve_api_key(api_key: str | None) -> str | None:
+    """Arg wins over env var. Empty / whitespace-only → None (no header)."""
+    candidate = api_key if api_key is not None else os.getenv(_ENV_API_KEY)
+    if candidate is None:
+        return None
+    candidate = candidate.strip()
+    return candidate or None
+
+
+def _auth_headers(api_key: str | None) -> dict[str, str]:
+    return {"authorization": f"Bearer {api_key}"} if api_key else {}
+
+
 def _build_body(
     query: str, max_results: int | None, max_chars_per_result: int | None
 ) -> dict[str, Any]:
@@ -146,21 +160,25 @@ class Client:
 
     Use as a context manager for automatic connection cleanup::
 
-        with Client() as c:
+        with Client(api_key="...") as c:
             r = c.search("how to ...")
 
-    Pass ``base_url`` or set ``CODING_SEARCH_BASE_URL`` to point at a
-    non-default host.
+    Pass ``base_url`` / ``api_key`` or set ``CODING_SEARCH_BASE_URL`` /
+    ``CODING_SEARCH_API_KEY`` to configure. The API key is **not** required
+    today — it is forwarded as ``Authorization: Bearer <key>`` for
+    server-side usage tracking only.
     """
 
     def __init__(
         self,
         *,
+        api_key: str | None = None,
         base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         client: httpx.Client | None = None,
     ) -> None:
         self._base_url = _resolve_base_url(base_url)
+        self._api_key = _resolve_api_key(api_key)
         self._owned = client is None
         self._client = client or httpx.Client(timeout=timeout)
 
@@ -175,7 +193,7 @@ class Client:
         url = f"{self._base_url}{_PATH}"
         body = _build_body(query, max_results, max_chars_per_result)
         try:
-            response = self._client.post(url, json=body)
+            response = self._client.post(url, json=body, headers=_auth_headers(self._api_key))
         except httpx.TimeoutException as exc:
             raise SearchTimeoutError(f"client-side timeout: {exc}") from exc
         except httpx.HTTPError as exc:
@@ -205,18 +223,20 @@ class AsyncClient:
 
     Use as an async context manager for automatic cleanup::
 
-        async with AsyncClient() as c:
+        async with AsyncClient(api_key="...") as c:
             r = await c.search("how to ...")
     """
 
     def __init__(
         self,
         *,
+        api_key: str | None = None,
         base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._base_url = _resolve_base_url(base_url)
+        self._api_key = _resolve_api_key(api_key)
         self._owned = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout)
 
@@ -231,7 +251,9 @@ class AsyncClient:
         url = f"{self._base_url}{_PATH}"
         body = _build_body(query, max_results, max_chars_per_result)
         try:
-            response = await self._client.post(url, json=body)
+            response = await self._client.post(
+                url, json=body, headers=_auth_headers(self._api_key)
+            )
         except httpx.TimeoutException as exc:
             raise SearchTimeoutError(f"client-side timeout: {exc}") from exc
         except httpx.HTTPError as exc:
@@ -261,6 +283,7 @@ def search(
     *,
     max_results: int | None = None,
     max_chars_per_result: int | None = None,
+    api_key: str | None = None,
     base_url: str | None = None,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> SearchResponse:
@@ -269,5 +292,5 @@ def search(
     For scripts and notebooks. For high-frequency use, instantiate a
     ``Client`` once and reuse it so the connection pool persists.
     """
-    with Client(base_url=base_url, timeout=timeout) as c:
+    with Client(api_key=api_key, base_url=base_url, timeout=timeout) as c:
         return c.search(query, max_results=max_results, max_chars_per_result=max_chars_per_result)
