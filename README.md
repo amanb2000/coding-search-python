@@ -26,6 +26,13 @@ uv tool install git+https://github.com/andre-fu/coding-search-python.git
 pipx install git+https://github.com/andre-fu/coding-search-python.git
 ```
 
+Or install the published package directly from PyPI:
+
+```bash
+pip install coding-search
+# or:  uv add coding-search
+```
+
 From a local clone (for development):
 
 ```bash

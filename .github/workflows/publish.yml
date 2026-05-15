@@ -1,0 +1,85 @@
+name: Publish to PyPI
+
+# Fires on every annotated tag matching v*. Standard release flow:
+#   git tag -a v0.3.1 -m "release 0.3.1"
+#   git push --tags
+# That single push triggers build → OIDC-authenticated publish.
+#
+# No PyPI tokens stored anywhere. Trusted Publishing (PEP 740) uses GitHub
+# Actions' OIDC token as the credential. To enable, register a pending
+# publisher at https://pypi.org/manage/account/publishing/ with:
+#   PyPI Project Name:  coding-search
+#   Owner:              andre-fu
+#   Repository name:    coding-search-python
+#   Workflow name:      publish.yml
+#   Environment name:   pypi
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Tag → full history makes setuptools_scm / hatch-vcs work later
+          # if we move to a vcs-derived version.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Verify tag matches pyproject version
+        run: |
+          tag="${GITHUB_REF##refs/tags/v}"
+          pyproject_version=$(grep -m1 '^version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
+          if [ "$tag" != "$pyproject_version" ]; then
+            echo "::error::tag v$tag does not match pyproject version $pyproject_version"
+            exit 1
+          fi
+          echo "tag ↔ pyproject version match: $tag"
+
+      - name: Build
+        run: uv build
+
+      - name: Inspect distributions
+        run: ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+          retention-days: 7
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Bind the job to the `pypi` environment so the OIDC token claim
+    # encodes `environment: pypi`. PyPI's pending publisher must be
+    # registered with the same environment name.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/coding-search
+    permissions:
+      id-token: write  # required for Trusted Publishing OIDC
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+      - name: Publish via Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` — pypa/gh-action-pypi-publish uses the OIDC token
+        # automatically when run inside an environment with id-token: write.
